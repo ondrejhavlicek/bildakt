@@ -1,1 +1,9 @@
 output_dir: "."
+name: "BildAkt analysis"
+navbar:
+  title: "BildAkt analysis"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "Analysis 1"
+      href: BildAktNtb.html

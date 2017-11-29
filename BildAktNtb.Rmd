@@ -1,12 +1,17 @@
 ---
-title: "BildAktVR data analysis"
-author: Ondrej Havlicek
-output: html_notebook
+title: "BildAktVR data analysis 1"
+author: "Ondrej Havlicek"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+    theme: flatly
 ---
 [ohavlicek@gmail.com](ohavlicek@gmail.com) 11/2017
 
-## Load packages
-```{r warning=FALSE}
+## Preparations
+### Load packages
+```{r Libraries, message=FALSE, warning=FALSE}
 library(tidyverse)  #all basic functions
 library(forcats) #working with factors
 library(lme4) #mixed effects models
@@ -14,14 +19,14 @@ library(lmerTest) #mixed effects models pvalues
 library(sjPlot) #liner models tables
 ```
 
-## Defititions
-```{r}
-datapath <- file.path(getwd(), "..", "Data", "Main")
+### Defititions
+```{r Definitions}
+datapath <- file.path(getwd(), "Data", "Main")
 datafilepattern <- "BildAkt.*\\.csv"
 ```
 
-## Read data and convert column types
-```{r echo=TRUE, warning=FALSE, include=TRUE, results="hide"}
+### Read data and convert column types
+```{r Read_data, message=FALSE, warning=FALSE}
 datafiles <- list.files(datapath, datafilepattern, full.names = T)
 
 rawdata <- do.call(rbind, lapply(datafiles, read_delim, delim=";")) # read all files and combine them into one tibble
@@ -33,8 +38,8 @@ rawdata <- rawdata %>% mutate(firstSceneType = parse_factor(firstSceneType, c("3
                    eventType = parse_factor(eventType, c("Action", "Control")))
 ```
 
-## Prepare subset of data which will be in fact used in the analysis, create new columns
-```{r}
+### Prepare subset of data for analysis, create new columns
+```{r Subset}
 data <- rawdata %>% filter(isPracticeBlock == FALSE) %>% 
   select(Subject = subject,
          Session = session,
@@ -57,70 +62,131 @@ data <- rawdata %>% filter(isPracticeBlock == FALSE) %>%
   ) %>% mutate(#TODO: ObjectsRT = TSObjectsResp - TSTrialOnset,
     ObjectsError = ObjectsResp - Objects,
     IntervalError = IntervalResp - Interval,
-    IntervalRT = TSIntervalResp - (TSTone + Interval),
-    IntervalRT2 = TSIntervalResp - (TSEvent + Interval)) #verify that it makes sense
+    IntervalRT = TSIntervalResp - (TSTone + Interval)#,
+    #IntervalRT2 = TSIntervalResp - (TSEvent + Interval)
+    ) 
 
 data #preview
 ```
 
-## Explore a bit scenes distribution and randomization
-```{r eval=FALSE, include=FALSE, results='hide', echo=TRUE}
-with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
-with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
-with(subset(rawdata, isPracticeBlock==F), table(sceneId, subject)) #how often is a scene used per subject?
+## Exploratory analysis
+### Explore a bit scenes distribution and randomization
+```{r Scene_interval_randomization}
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, subject)) #how often is a scene used per subject?
 #are different intervals equally distributed with object numbers?
 data %>% ggplot(., aes(x=Objects, y=Interval)) + geom_bin2d() + scale_y_continuous(breaks=c(150, 350, 550, 750)) + scale_x_continuous(breaks=6:15) +
   scale_fill_gradientn(colours=rainbow(4))
-with(data, table(Objects, Interval)) #seems random, although far from uniformly random
-with(data, cor.test(Objects, Interval)) #tiny negative correlation
+#with(data, table(Objects, Interval)) #seems random, although far from uniformly random
+#with(data, cor.test(Objects, Interval)) #tiny negative correlation
+```
+Number of objects inside a scene is not orthogonal to time interval: some combinations appear often, some less often. We will have to revise the VR code.
+
+
+### Objects error exploration
+```{r Objects_dists}
+data %>% ggplot(., aes(x=ObjectsError, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_freqpoly(bins=5) #geom_density(alpha=0.3)
 ```
 
-## Objects accuracy
-```{r}
+People are mostly correct about the object count.
+
+```{r Objects_accuracy}
 objErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
   summarize(NTrials = n(), ObjectsErrorMean = mean(ObjectsError), ObjectsErrorMedian = median(ObjectsError), ObjectsErrorAbsMean = mean(abs(ObjectsError)), ObjectsErrorSD = sd(ObjectsError), ObjectsErrorCor = cor(Objects,ObjectsResp)) 
 
 # Accuracy
 objErrors %>%  ggplot(., aes(y=ObjectsErrorMean, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
-# numbers of objects are being underestimated in 2D scenes
+```
+
+Numbers of objects are being underestimated in 2D scenes: This could be a confound for interpretation of any interval estimation effect - 3D and 2D scenes differ in object counting task difficulty. Should we reduce overlap of objects in the scenes?
+
+```{r Objects_precision}
 # Precision
 objErrors %>%  ggplot(., aes(y=ObjectsErrorSD, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
+```
+
+Precision is also better for 3D than for 2D scenes
+
+```{r Objects_correlation}
 # Correlation, discrimination
 objErrors %>%  ggplot(., aes(y=ObjectsErrorCor, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
-
-
 ```
 
-## Objects linear model
-```{r}
+There is also a difference in correlation between actual and estimated number of objects, but very tiny.
+
+
+### Objects mixed-effects model
+ObjectsError ~ Objects + SceneType*EventType + (1+Objects + SceneType + EventType|Subject)
+```{r Objects_mixed-effects_model, message=FALSE, warning=FALSE}
 objectsLmer <- as.data.frame(data) %>% lmer(ObjectsError ~ Objects + SceneType * EventType + (1+Objects + SceneType + EventType|Subject), .)
 #random interaction fails to converge
 #summary(objectsLmer)
 
 sjt.lmer(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
-htmltools::includeHTML("objectsLmer.html") #And include it later
+#htmltools::includeHTML("objectsLmer.html") #And include it later
+```
+The error in object count is not (sig.) influenced by number of objects in the scene, but is influenced by the scene type (2D = more underestimation of the count)
+
+### Intervals error exploration
+```{r Intervals_dens}
+# Are interval errors approx normally distributed?
+data %>% ggplot(., aes(x=IntervalError, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_freqpoly(bins=15) #geom_density(alpha=0.3)
 ```
 
+Interval estimation errors (Estimated - Actual) are pretty much normally distributed with pretty much similar variance across subjects and conditions
 
-## Intervals accuracy
-```{r}
+```{r Intervals_accuracy}
 intErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
   summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean = mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError), IntervalErrorCor = cor(Interval,IntervalResp)) 
 
 # Accuracy
 intErrors %>%  ggplot(., aes(y=IntervalErrorMean, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
-# numbers of Interval are being underestimated in 2D scenes
+```
+
+Intervals are judged more accurately in Action (Press-Beep) than in Control (Vibration-Beep) conditions
+
+```{r Intervals_precision}
 # Precision
 intErrors %>%  ggplot(., aes(y=IntervalErrorSD, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
+```
+
+Interval estimates seem to be more precise (less variable) in the 3D condition.
+
+```{r Intervals_correlation}
 # Correlation, discrimination
 intErrors %>%  ggplot(., aes(y=IntervalErrorCor, x=SceneType)) +
   geom_boxplot() + facet_grid(.~EventType)
+```
 
+Correlation between actual and estimated intervals seems to be a bit better in the 3D condition.
+
+### Intervals model
+- Model 1: IntervalError ~ Interval + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject)
+- Model 2: IntervalError ~ Interval + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject)
+```{r message=FALSE, warning=FALSE}
+intervalsLmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject), .)
+#summary(intervalsLmer)
+#include also objects error: how inaccurate a person was in absolute numbers
+intervalsOELmer <- as.data.frame(data) %>% lmer(IntervalError ~ Interval + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject), .)
+#summary(intervalsOELmer)
+
+sjt.lmer(intervalsLmer, intervalsOELmer, file="intervalsLmer.html")# We have to save the table in html format.
+#htmltools::includeHTML("intervalsLmer.html") #And include it later
 
 ```
+- Intervals are more underestimated for longer (actual) intervals. 
+- There is no effect of scene type - we hypothesise that intervals will be underestimated more in 3D than in 2D..
+- The intervals may be overestimated a bit more in the Control than in Action condition - consistent with agency hypothesis, but it may be driven by factually different intervals in action than in control due to the VR SW and HW..  So we should probably rather look for an interaction:
+- There is a n.s. hint at interaction between Scene type (2D/3D) and Event type (Action/Control), which is what we want - but we want there to be probably a bigger underestimation in 3D than 2D, in the Action than in the Control condition, right? 
+- Model which includes also error in objects estimation (measure of difficulty of the counting task, in absolute numbers) shows no interesting difference. (The bigger significance of Interval is due to its exclusion from random effects = potentially higher false positive rate)
+
+
 
