@@ -1,0 +1,126 @@
+---
+title: "BildAktVR data analysis"
+author: Ondrej Havlicek
+output: html_notebook
+---
+[ohavlicek@gmail.com](ohavlicek@gmail.com) 11/2017
+
+## Load packages
+```{r warning=FALSE}
+library(tidyverse)  #all basic functions
+library(forcats) #working with factors
+library(lme4) #mixed effects models
+library(lmerTest) #mixed effects models pvalues
+library(sjPlot) #liner models tables
+```
+
+## Defititions
+```{r}
+datapath <- file.path(getwd(), "..", "Data", "Main")
+datafilepattern <- "BildAkt.*\\.csv"
+```
+
+## Read data and convert column types
+```{r echo=TRUE, warning=FALSE, include=TRUE, results="hide"}
+datafiles <- list.files(datapath, datafilepattern, full.names = T)
+
+rawdata <- do.call(rbind, lapply(datafiles, read_delim, delim=";")) # read all files and combine them into one tibble
+
+rawdata <- rawdata %>% mutate(firstSceneType = parse_factor(firstSceneType, c("3D", "2D")),
+                   firstEventType = parse_factor(firstEventType, c("Action", "Control")),
+                   isPracticeBlock = as.logical(isPracticeBlock),
+                   sceneType = parse_factor(setupType, c("3D", "2D")),
+                   eventType = parse_factor(eventType, c("Action", "Control")))
+```
+
+## Prepare subset of data which will be in fact used in the analysis, create new columns
+```{r}
+data <- rawdata %>% filter(isPracticeBlock == FALSE) %>% 
+  select(Subject = subject,
+         Session = session,
+         FirstSceneType = firstSceneType,
+         FirstEventType = firstEventType,
+         Block = blockNo,
+         SceneType = sceneType,
+         EventType = eventType,
+         Trial = trialNoInBlock,
+         TrialTotal = trialNoTotal,
+         Objects = noObjects,
+         ObjectsResp = responseObjectsNo,
+         Interval = interval,
+         IntervalResp = responseInterval,
+         # TODO: add TSTrialOnset
+         TSObjectsResp = responseObjectsTimestamp,
+         TSEvent = eventTimestamp,
+         TSTone = toneTimestamp, ##TSTone is recorded when sending the command playDelayed to produce the tone after a specified interval, so tone in fact occurs later, at an uknown time, but roughly TSTone + Interval
+         TSIntervalResp = responseIntervalTimestamp
+  ) %>% mutate(#TODO: ObjectsRT = TSObjectsResp - TSTrialOnset,
+    ObjectsError = ObjectsResp - Objects,
+    IntervalError = IntervalResp - Interval,
+    IntervalRT = TSIntervalResp - (TSTone + Interval),
+    IntervalRT2 = TSIntervalResp - (TSEvent + Interval)) #verify that it makes sense
+
+data #preview
+```
+
+## Explore a bit scenes distribution and randomization
+```{r eval=FALSE, include=FALSE, results='hide', echo=TRUE}
+with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
+with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
+with(subset(rawdata, isPracticeBlock==F), table(sceneId, subject)) #how often is a scene used per subject?
+#are different intervals equally distributed with object numbers?
+data %>% ggplot(., aes(x=Objects, y=Interval)) + geom_bin2d() + scale_y_continuous(breaks=c(150, 350, 550, 750)) + scale_x_continuous(breaks=6:15) +
+  scale_fill_gradientn(colours=rainbow(4))
+with(data, table(Objects, Interval)) #seems random, although far from uniformly random
+with(data, cor.test(Objects, Interval)) #tiny negative correlation
+```
+
+## Objects accuracy
+```{r}
+objErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), ObjectsErrorMean = mean(ObjectsError), ObjectsErrorMedian = median(ObjectsError), ObjectsErrorAbsMean = mean(abs(ObjectsError)), ObjectsErrorSD = sd(ObjectsError), ObjectsErrorCor = cor(Objects,ObjectsResp)) 
+
+# Accuracy
+objErrors %>%  ggplot(., aes(y=ObjectsErrorMean, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+# numbers of objects are being underestimated in 2D scenes
+# Precision
+objErrors %>%  ggplot(., aes(y=ObjectsErrorSD, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+# Correlation, discrimination
+objErrors %>%  ggplot(., aes(y=ObjectsErrorCor, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+
+
+```
+
+## Objects linear model
+```{r}
+objectsLmer <- as.data.frame(data) %>% lmer(ObjectsError ~ Objects + SceneType * EventType + (1+Objects + SceneType + EventType|Subject), .)
+#random interaction fails to converge
+#summary(objectsLmer)
+
+sjt.lmer(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
+htmltools::includeHTML("objectsLmer.html") #And include it later
+```
+
+
+## Intervals accuracy
+```{r}
+intErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean = mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError), IntervalErrorCor = cor(Interval,IntervalResp)) 
+
+# Accuracy
+intErrors %>%  ggplot(., aes(y=IntervalErrorMean, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+# numbers of Interval are being underestimated in 2D scenes
+# Precision
+intErrors %>%  ggplot(., aes(y=IntervalErrorSD, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+# Correlation, discrimination
+intErrors %>%  ggplot(., aes(y=IntervalErrorCor, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+
+
+```
+
