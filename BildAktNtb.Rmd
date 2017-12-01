@@ -2,12 +2,13 @@
 title: "BildAktVR data analysis 1"
 author: "Ondrej Havlicek"
 output:
-  html_document:
+  html_notebook:
     code_folding: hide
     df_print: paged
     theme: flatly
+    toc: yes
 ---
-[ohavlicek@gmail.com](ohavlicek@gmail.com) 11/2017
+[ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 11/2017
 
 ## Preparations
 ### Load packages
@@ -23,6 +24,9 @@ library(sjPlot) #liner models tables
 ```{r Definitions}
 datapath <- file.path(getwd(), "Data", "Main")
 datafilepattern <- "BildAkt.*\\.csv"
+
+#ggplot2 theme
+#old_theme <- theme_set(theme_grey())
 ```
 
 ### Read data and convert column types
@@ -62,8 +66,9 @@ data <- rawdata %>% filter(isPracticeBlock == FALSE) %>%
   ) %>% mutate(#TODO: ObjectsRT = TSObjectsResp - TSTrialOnset,
     ObjectsError = ObjectsResp - Objects,
     IntervalError = IntervalResp - Interval,
-    IntervalRT = TSIntervalResp - (TSTone + Interval)#,
+    IntervalRT = TSIntervalResp - (TSTone), #correct? apparently, no need to adjust the RT by Interval?? it just gets regressed out...
     #IntervalRT2 = TSIntervalResp - (TSEvent + Interval)
+    IntervalLogRT = log(IntervalRT)
     ) 
 
 data #preview
@@ -85,6 +90,7 @@ Number of objects inside a scene is not orthogonal to time interval: some combin
 
 
 ### Objects error exploration
+Distributions of object estimation errors (error = estimated - actual) for each participant:
 ```{r Objects_dists}
 data %>% ggplot(., aes(x=ObjectsError, linetype=SceneType, color=EventType)) +  
   facet_wrap(~Subject) + geom_freqpoly(bins=5) #geom_density(alpha=0.3)
@@ -128,7 +134,7 @@ objectsLmer <- as.data.frame(data) %>% lmer(ObjectsError ~ Objects + SceneType *
 #summary(objectsLmer)
 
 sjt.lmer(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
-#htmltools::includeHTML("objectsLmer.html") #And include it later
+htmltools::includeHTML("objectsLmer.html") #And include it later, not needed for html_document type, only for notebook
 ```
 The error in object count is not (sig.) influenced by number of objects in the scene, but is influenced by the scene type (2D = more underestimation of the count)
 
@@ -168,25 +174,76 @@ intErrors %>%  ggplot(., aes(y=IntervalErrorCor, x=SceneType)) +
 
 Correlation between actual and estimated intervals seems to be a bit better in the 3D condition.
 
-### Intervals model
-- Model 1: IntervalError ~ Interval + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject)
-- Model 2: IntervalError ~ Interval + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject)
+### Intervals models
+- Model 1: IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject)
+- Model 2: IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject)
 ```{r message=FALSE, warning=FALSE}
 intervalsLmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject), .)
 #summary(intervalsLmer)
 #include also objects error: how inaccurate a person was in absolute numbers
-intervalsOELmer <- as.data.frame(data) %>% lmer(IntervalError ~ Interval + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject), .)
+intervalsOELmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+scale(Interval)+SceneType + EventType|Subject), .)
 #summary(intervalsOELmer)
 
 sjt.lmer(intervalsLmer, intervalsOELmer, file="intervalsLmer.html")# We have to save the table in html format.
-#htmltools::includeHTML("intervalsLmer.html") #And include it later
+htmltools::includeHTML("intervalsLmer.html") #And include it later - not needed for html_document type, only for notebook
 
 ```
+
 - Intervals are more underestimated for longer (actual) intervals. 
 - There is no effect of scene type - we hypothesise that intervals will be underestimated more in 3D than in 2D..
 - The intervals may be overestimated a bit more in the Control than in Action condition - consistent with agency hypothesis, but it may be driven by factually different intervals in action than in control due to the VR SW and HW..  So we should probably rather look for an interaction:
 - There is a n.s. hint at interaction between Scene type (2D/3D) and Event type (Action/Control), which is what we want - but we want there to be probably a bigger underestimation in 3D than 2D, in the Action than in the Control condition, right? 
 - Model which includes also error in objects estimation (measure of difficulty of the counting task, in absolute numbers) shows no interesting difference. (The bigger significance of Interval is due to its exclusion from random effects = potentially higher false positive rate)
 
+### Intervals RT exploration
+```{r Interval_RT_exploration}
+data %>% ggplot(., aes(x=IntervalLogRT, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_density(alpha=0.3)#geom_freqpoly(bins=5) #
+```
+
+```{r Interval_RT_Outlier_exploration, eval=FALSE, include=FALSE}
+qqnorm(data$IntervalLogRT)
+
+data.nooutliers <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(MeanLogRT = mean(IntervalLogRT), SDLogRT = sd(IntervalLogRT)) %>% ungroup() %>%
+  mutate(Lower = MeanLogRT - 2.5*SDLogRT, Upper = MeanLogRT + 2.5*SDLogRT) %>% 
+  right_join(., data, by=c("Subject", "SceneType", "EventType")) %>%
+  mutate(Include = ifelse(IntervalLogRT>Lower & IntervalLogRT<Upper, T, F) ) %>% 
+  filter(Include == T)
+
+data.nooutliers %>% ggplot(., aes(x=IntervalLogRT, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_density(alpha=0.3)
+
+qqnorm(data.nooutliers$IntervalLogRT)
+```
+
+RTs are around 3-7 seconds, there is a pretty long tail, but log-transformed seems ok-ish, maybe no need to remove outliers..
+
+```{r IntervalsRT_meanlog}
+intRTs <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), IntervalLogRTMean = mean(IntervalLogRT), IntervalLogRTSD = sd(IntervalLogRT)) 
+
+# Mean
+intRTs %>%  ggplot(., aes(y=IntervalLogRTMean, x=SceneType)) + geom_boxplot() + facet_grid(.~EventType)
+```
+
+Interval RTs seem to be faster for 2D than for 3D in Action condition
+
+```{r IntervalsRT_sd}
+# Variability
+intRTs %>%  ggplot(., aes(y=IntervalLogRTSD, x=SceneType)) + geom_boxplot() + facet_grid(.~EventType)
+```
+
+Not sure whether this means something, let's wait for more data..
+
+### Interval RT mixed-effects model
+IntervalLogRT ~ Objects + Interval + SceneType * EventType + (1+SceneType + EventType|Subject)
+```{r IntervalRT_mixed-effects_model, message=FALSE, warning=FALSE}
+intervalRTLmer <- as.data.frame(data) %>% lmer(IntervalLogRT ~ Objects + Interval + SceneType * EventType + (1+SceneType + EventType|Subject), .)
+#summary(intervalRTLmer)
+
+sjt.lmer(intervalRTLmer, file="intervalRTLmer.html", digits.est=5, digits.ci=5)# We have to save the table in html format.
+htmltools::includeHTML("intervalRTLmer.html") #And include it later, not needed for html_document type, only for notebook
+```
 
 

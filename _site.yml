@@ -6,4 +6,4 @@ navbar:
     - text: "Home"
       href: index.html
     - text: "Analysis 1"
-      href: BildAktNtb.html
+      href: BildAktNtb.nb.html
