@@ -80,6 +80,7 @@ data #preview
 #with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
 #with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
 #with(subset(rawdata, isPracticeBlock==F), table(sceneId, subject)) #how often is a scene used per subject?
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId)) how often is scene used in general? seems uniform
 #are different intervals equally distributed with object numbers?
 data %>% ggplot(., aes(x=Objects, y=Interval)) + geom_bin2d() + scale_y_continuous(breaks=c(150, 350, 550, 750)) + scale_x_continuous(breaks=6:15) +
   scale_fill_gradientn(colours=rainbow(4))

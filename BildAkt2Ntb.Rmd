@@ -1,0 +1,361 @@
+---
+title: "BildAktVR data analysis 2"
+author: "Ondrej Havlicek"
+output:
+  html_notebook:
+    code_folding: hide
+    df_print: paged
+    theme: flatly
+    toc: yes
+---
+[ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 06/2018
+
+## Preparations
+### Load packages
+```{r Libraries, message=FALSE, warning=FALSE}
+library(tidyverse)  #all basic functions
+library(forcats) #working with factors
+library(lubridate)  # working with dates
+library(lme4) #mixed effects models
+library(lmerTest) #mixed effects models pvalues
+library(sjPlot) #liner models tables
+```
+
+### Defititions
+```{r Definitions}
+datapath <- file.path(getwd(), "Data", "Main")
+datafilepattern <- "BildAkt.*\\.csv"
+
+#ggplot2 theme
+#old_theme <- theme_set(theme_grey())
+```
+
+### Read data 
+```{r Read_data, message=FALSE, warning=FALSE}
+datafiles <- list.files(datapath, datafilepattern, full.names = T)
+
+rawdata <- do.call(rbind, lapply(datafiles, read_delim, delim=";")) # read all files and combine them into one tibble
+
+
+```
+
+### convert column types
+```{r}
+rawdata <- rawdata %>% mutate(firstSceneType = parse_factor(firstSceneType, c("3D", "2D")),
+                   firstEventType = parse_factor(firstEventType, c("Action", "Control")),
+                   isPracticeBlock = as.logical(isPracticeBlock),
+                   sceneType = parse_factor(setupType, c("3D", "2D")),
+                   eventType = parse_factor(eventType, c("Action", "Control")),
+                   experimentTime = ymd_hms(experimentTime),
+                   subject = as.numeric(subject)
+                   )
+```
+
+### Manually fill in some subject IDs based on datetime of experiment
+```{r}
+rawdata <- rawdata %>% mutate(subject = case_when(experimentTime == ymd_hms("2018-01-17_12-56-08") ~ 17,
+                                       experimentTime == ymd_hms("2018-01-22_13-19-47") ~ 24,
+                                       experimentTime == ymd_hms("2018-01-22_14-59-19") ~ 25,
+                                       TRUE ~ subject)
+) 
+```
+
+### Verify the subject IDs and numbers of trials (incl.practice) we have
+```{r}
+rawdata %>% arrange(subject) %>% count(subject)
+```
+
+
+### Prepare subset of data for analysis, create new columns
+```{r Subset}
+data <- rawdata %>% filter(isPracticeBlock == FALSE) %>% 
+  select(Subject = subject,
+         Session = session,
+         FirstSceneType = firstSceneType,
+         FirstEventType = firstEventType,
+         Block = blockNo,
+         SceneType = sceneType,  
+         EventType = eventType,
+         TrialBlock = trialNoInBlock,
+         TrialTotal = trialNoTotal,
+         ObjectsCount = noObjects,
+         ObjectsResp = responseObjectsNo,
+         Interval = interval,
+         IntervalResp = responseInterval,
+         TSTrialOnset = trialOnsetTimestamp,
+         TSObjectsResp = responseObjectsTimestamp,
+         TSEvent = eventTimestamp,
+         TSTone = toneTimestamp, ##TSTone = TSEvent, is recorded when sending the command playDelayed to produce the tone after a specified interval, so tone in fact occurs later, at an uknown time, but roughly TSTone + Interval
+         TSIntervalResp = responseIntervalTimestamp
+  ) %>% mutate(
+    ObjectsRT = TSObjectsResp - TSTrialOnset,
+    ObjectsError = ObjectsResp - ObjectsCount,
+    IntervalError = IntervalResp - Interval,
+    #IntervalRT = TSIntervalResp - (TSTone), #correct? apparently, no need to adjust the RT by Interval?? it just gets regressed out...
+    IntervalRT = TSIntervalResp - (TSEvent + Interval),
+    IntervalLogRT = log(IntervalRT)
+    ) 
+
+data #preview
+```
+
+## Main results
+### Intervals estimation error distributions
+```{r Intervals_dens}
+# Are interval errors approx normally distributed?
+data %>% ggplot(., aes(x=IntervalError, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + 
+  geom_freqpoly(bins=15) #geom_density(alpha=0.3)
+```
+
+Interval estimation errors (Estimated - Actual) are pretty much normally distributed with pretty much similar variance across subjects and conditions
+
+### Main figure
+Means of individual estimation errors as a distribution (violin plot with median of means) and a point estimate (mean of means) plus 95% CI for the mean
+```{r Intervals_accuracy}
+# First level aggregation, over trials
+intErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean = mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError), IntervalErrorCor = cor(Interval,IntervalResp)) 
+# Second level aggregation, over subjects
+intErrors.agg <- intErrorsInt %>% group_by(SceneType, EventType) %>%
+  summarise(NSubjects = n(), MeanMeanIntervalError = mean(IntervalErrorMean), MeanMedianIntervalError = mean(IntervalErrorMedian), 
+            SDMeanIntervalError = sd(IntervalErrorMean)) %>%
+  mutate(SEMMeanIntervalError = SDMeanIntervalError / sqrt(NSubjects),
+         CIMeanIntervalError = SEMMeanIntervalError * abs(qt((1-0.95)/2, NSubjects-1))
+  )
+
+# Plot interval estimation accuracy per conditions
+dodge1 <- position_dodge(width=1)
+intErrors %>%  
+  ggplot(., aes(y=IntervalErrorMean, x=EventType, color=SceneType, group=interaction(SceneType, EventType))) +
+  geom_violin(draw_quantiles = c(0.5), scale="count", data=intErrors, position=dodge1) + 
+  #facet_grid(.~EventType) +
+  geom_point(aes(y=MeanMeanIntervalError), size = 2, color="black", data = intErrors.agg, position=dodge1) +
+  geom_errorbar(aes(y=MeanMeanIntervalError, ymin=MeanMeanIntervalError-CIMeanIntervalError, ymax=MeanMeanIntervalError+CIMeanIntervalError), width = 0.2, color="black", data = intErrors.agg, position=dodge1) +  # it says error bar has no y easthetic but without it it throws a different error..
+  ylab("Mean Interval estimation error (ms)")
+  #geom_errorbar(aes(ymin=-100, ymax=100),  data = intErrors.agg, position=dodge1)
+```
+
+Intervals are judged more accurately in Action (Press-Beep) action, where they are slightly underestimated, than in Control (Vibration-Beep) condition, where they are overestimated. No obvious influence of 2D/3D scene type. Similar for mean and for median.
+
+### Interval estimation error per interval length
+Error bars are 95% CI for the mean
+```{r Intervals_accuracy_interval}
+intErrorsInt <- data %>% group_by(Subject, SceneType, EventType, Interval) %>% 
+  summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean = mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError)) 
+
+intErrorsInt.agg <- intErrorsInt %>% group_by(SceneType, EventType, Interval) %>%
+  summarise(NSubjects = n(), MeanMeanIntervalError = mean(IntervalErrorMean), MeanMedianIntervalError = mean(IntervalErrorMedian), 
+            SDMeanIntervalError = sd(IntervalErrorMean)) %>%
+  mutate(SEMMeanIntervalError = SDMeanIntervalError / sqrt(NSubjects),
+         CIMeanIntervalError = SEMMeanIntervalError * abs(qt((1-0.95)/2, NSubjects-1))
+  )
+
+# Accuracy per interval and conditions plot
+dodge <- position_dodge(width=20)
+intErrorsInt.agg %>%  ggplot(., aes(x=Interval, y=MeanMeanIntervalError, color=SceneType, shape=SceneType, group=interaction(EventType, SceneType))) + 
+  geom_point(position = dodge) + geom_line(aes(linetype=EventType), position = dodge) + 
+  geom_errorbar(width = 10, position = dodge, aes(ymin = MeanMeanIntervalError - CIMeanIntervalError, ymax = MeanMeanIntervalError + CIMeanIntervalError)) +
+ scale_x_continuous(breaks=c(150, 350, 550, 750))  
+```
+No influence of Scene type :-(
+
+### Intervals: mixed-effects models - main output of analysis
+- Model 1: IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject)
+- Model 2: IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+scale(Interval)+SceneType + EventType|Subject)
+```{r message=FALSE, warning=FALSE}
+intervalsLmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject), .)
+#summary(intervalsLmer)
+#include also objects error: how inaccurate a person was in absolute numbers
+intervalsOELmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+scale(Interval)+SceneType + EventType|Subject), .)
+#summary(intervalsOELmer)
+
+sjt.lmer(intervalsLmer, intervalsOELmer, p.kr = FALSE, file="intervalsLmer.html")# We have to save the table in html format.
+htmltools::includeHTML("intervalsLmer.html") #And include it later - not needed for html_document type, only for notebook
+
+```
+
+- Beta coefficients are in ms
+- Intervals are more underestimated for longer (actual) intervals. 
+- :-( There is no effect of scene type, but we hypothesised that intervals will be underestimated more in 3D than in 2D..
+- :-) The intervals are overestimated more in the Control than in Action condition - consistent with agency hypothesis, but it may be driven by factually different intervals in action than in control due to the VR SW and HW..  So we should probably rather look for an interaction:
+- There is no interaction between Scene type (2D/3D) and Event type (Action/Control), but we wanted to find a bigger underestimation in 3D than 2D, in the Action than in the Control condition, right? 
+- Model which includes also error in objects estimation (measure of difficulty of the counting task, in absolute numbers) shows no interesting difference. 
+
+## Exploratory analyses and checks
+
+### Explore a bit scenes distribution and randomization
+Is the number of objects in a scene unrelated to the event-sound interval?
+```{r Scene_interval_randomization}
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId, subject)) #how often is a scene used per subject?
+#with(subset(rawdata, isPracticeBlock==F), table(sceneId)) how often is scene used in general? seems uniform
+#are different intervals equally distributed with object numbers?
+data %>% ggplot(., aes(x=ObjectsCount, y=Interval)) + geom_bin2d() + scale_y_continuous(breaks=c(150, 350, 550, 750)) + scale_x_continuous(breaks=5:12) +
+  scale_fill_gradientn(colours=rainbow(4))
+#with(data, table(ObjectsCount, Interval)) #seems random, although far from uniformly random
+#with(data, cor.test(ObjectsCount, Interval)) #tiny negative correlation
+```
+Number of objects inside a scene is not uniform across time interval: some combinations appear often, some less often. But the VR code seems properly randomized..
+
+Let's visualize it a bit more
+
+```{r}
+data %>% ggplot(., aes(x=ObjectsCount)) + geom_bar() + facet_grid(~as.factor(Interval))
+```
+
+```{r}
+data %>% ggplot(., aes(x=Interval)) + geom_bar() + facet_grid(~as.factor(ObjectsCount))
+```
+
+
+```{r}
+with(data, cor.test(ObjectsCount, Interval))
+```
+At least there is no linear relationship?
+
+```{r}
+objint.lm <- lm(ObjectsCount ~ Interval + I(Interval^2) + I(Interval^3), data)
+summary(objint.lm)
+```
+Interestingly we have now linear, quadratic and cubic trend, but overal R2 is pretty much zero, so there is no practically significant relation between interval and number of objects.
+
+
+### Objects error exploration
+Distributions of object estimation errors (error = estimated - actual) for each participant:
+```{r Objects_dists}
+data %>% ggplot(., aes(x=ObjectsError, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_freqpoly(bins=5) #geom_density(alpha=0.3)
+```
+
+People are mostly correct about the object count.
+
+What about relation of error on the number of actual objects?
+```{r}
+data %>% group_by(Subject, ObjectsCount) %>% 
+  summarise(N = n(), meanObjectsError = mean(ObjectsError), medianObjectsError = median(ObjectsError)) %>%
+  ggplot(., aes(y=meanObjectsError, x=as.factor(ObjectsCount))) + geom_violin()
+```
+More objects do not mean on average larger error, but more variance..
+
+```{r Objects_accuracy}
+objErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), ObjectsErrorMean = mean(ObjectsError), ObjectsErrorMedian = median(ObjectsError), ObjectsErrorAbsMean = mean(abs(ObjectsError)), ObjectsErrorSD = sd(ObjectsError), ObjectsErrorCor = cor(ObjectsCount,ObjectsResp)) 
+
+# Accuracy
+objErrors %>%  ggplot(., aes(y=ObjectsErrorMean, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+```
+
+There seems to be no difference in object count estimation among conditions, which is good.
+
+```{r Objects_precision}
+# Precision
+objErrors %>%  ggplot(., aes(y=ObjectsErrorSD, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+```
+
+Precision seems to be slightly better for 3D than for 2D scenes
+
+```{r Objects_correlation}
+# Correlation, discrimination
+objErrors %>%  ggplot(., aes(y=ObjectsErrorCor, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+```
+
+Not much of a difference in correlation between actual and estimated number of objects, only very tiny benefit of 3D.
+
+
+### Objects: mixed-effects model
+ObjectsError ~ ObjectsCount + SceneType*EventType + (1+ObjectsCount + SceneType + EventType|Subject)
+```{r Objects_mixed-effects_model, message=FALSE, warning=FALSE}
+objectsLmer <- as.data.frame(data) %>% lmer(ObjectsError ~ ObjectsCount + SceneType * EventType + (1+ObjectsCount + SceneType + EventType|Subject), .)
+#random interaction fails to converge
+#summary(objectsLmer)
+
+sjt.lmer(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
+htmltools::includeHTML("objectsLmer.html") #And include it later, not needed for html_document type, only for notebook
+```
+The error in object count is (sig.) influenced by number of objects in the scene and by the scene type (2D = more underestimation of the count), but the coefficients are tiny.
+
+
+
+
+
+### Explore interval estimation precision and correlation
+```{r Intervals_precision}
+# Precision
+intErrors %>%  ggplot(., aes(y=IntervalErrorSD, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+```
+
+No apparent difference in precision.
+
+```{r Intervals_correlation}
+# Correlation, discrimination
+intErrors %>%  ggplot(., aes(y=IntervalErrorCor, x=SceneType)) +
+  geom_boxplot() + facet_grid(.~EventType)
+```
+
+Correlation between reality and estimate seems slightly worse for 2D in Action condition..
+
+### Intervals RT exploration
+```{r Interval_RT_exploration}
+data %>% ggplot(., aes(x=IntervalLogRT, linetype=SceneType, color=EventType)) +  
+  facet_wrap(~Subject) + geom_density(alpha=0.3)#geom_freqpoly(bins=5) #
+```
+Log RTs seem sufficiently normally distributed with similar variances
+
+Are ther outlier trials in the RTs?
+```{r Interval_RT_Outlier_exploration, eval=FALSE, include=FALSE}
+#qqnorm(data$IntervalLogRT)  # kind of ok
+
+# remove trials which are outliers
+data.nooutliers <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(MeanLogRT = mean(IntervalLogRT), SDLogRT = sd(IntervalLogRT)) %>% ungroup() %>%
+  mutate(Lower = MeanLogRT - 2.5*SDLogRT, Upper = MeanLogRT + 2.5*SDLogRT) %>% 
+  right_join(., data, by=c("Subject", "SceneType", "EventType")) %>%
+  mutate(Include = ifelse(IntervalLogRT>Lower & IntervalLogRT<Upper, T, F) ) %>% 
+  filter(Include == T)
+
+data.nooutliers %>% ggplot(., aes(x=IntervalLogRT, linetype=SceneType, color=EventType)) +  
+  #facet_wrap(~Subject) + 
+  geom_density(alpha=0.3)
+# not much of a difference
+
+#qqnorm(data.nooutliers$IntervalLogRT)
+# not much of a difference
+```
+
+RTs are around 2-10 seconds, there is a pretty long tail, but log-transformed seems ok-ish, seems no need to remove outliers..
+But not much of a difference among conditions..
+
+```{r IntervalsRT_meanlog}
+intRTs <- data %>% group_by(Subject, SceneType, EventType) %>% 
+  summarize(NTrials = n(), IntervalLogRTMean = mean(IntervalLogRT), IntervalLogRTSD = sd(IntervalLogRT)) 
+
+# Mean
+intRTs %>%  ggplot(., aes(y=IntervalLogRTMean, x=SceneType)) + geom_boxplot() + facet_grid(.~EventType)
+```
+
+Interval RTs seem to be very similar acrosss conditions
+
+```{r IntervalsRT_sd}
+# Variability
+intRTs %>%  ggplot(., aes(y=IntervalLogRTSD, x=SceneType)) + geom_boxplot() + facet_grid(.~EventType)
+```
+
+No interesting difference..
+
+### Interval RT mixed-effects model
+IntervalLogRT ~ ObjectsCount + Interval + SceneType * EventType + (1+SceneType + EventType|Subject)
+```{r IntervalRT_mixed-effects_model, message=FALSE, warning=FALSE}
+intervalRTLmer <- as.data.frame(data) %>% lmer(IntervalLogRT ~ ObjectsCount + Interval + SceneType * EventType + (1+SceneType + EventType|Subject), .)
+#summary(intervalRTLmer)
+
+sjt.lmer(intervalRTLmer, file="intervalRTLmer.html", p.kr = FALSE, digits.est=5, digits.ci=5)# We have to save the table in html format.
+htmltools::includeHTML("intervalRTLmer.html") #And include it later, not needed for html_document type, only for notebook
+```
+Nothing very interesting
+

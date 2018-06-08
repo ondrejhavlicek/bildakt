@@ -7,3 +7,5 @@ navbar:
       href: index.html
     - text: "Analysis 1"
       href: BildAktNtb.nb.html
+    - text: "Analysis 2"
+      href: BildAkt2Ntb.nb.html
