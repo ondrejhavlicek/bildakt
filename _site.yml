@@ -9,3 +9,5 @@ navbar:
       href: BildAktNtb.nb.html
     - text: "Analysis 2"
       href: BildAkt2Ntb.nb.html
+    - text: "Qualitative results"
+      href: BildAktQualitative.nb.html

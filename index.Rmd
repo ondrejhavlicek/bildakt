@@ -2,7 +2,9 @@
 title: "BildAkt analysis Home page"
 author: "Ondrej Havlicek"
 date: "November 29, 2017"
-output: html_document
+output: 
+  html_document: 
+    theme: flatly
 ---
 
 ```{r setup, include=FALSE}

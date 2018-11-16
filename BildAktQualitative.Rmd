@@ -1,0 +1,164 @@
+---
+title: "Analyses of qualitative data from BildAkt VR experiment feedback questionnaires"
+author: "Ondrej Havlicek"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+    theme: flatly
+    toc: yes
+    toc_depth: '4'
+  html_notebook:
+    code_folding: hide
+    df_print: paged
+    fig_height: 3.5
+    theme: flatly
+    toc: yes
+    toc_depth: 4
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
+  word_document:
+    df_print: kable
+    fig_height: 3.5
+    toc: yes
+    toc_depth: 4
+params:
+  printcode: no
+  printmsg: no
+  printwarnings: no
+---
+
+## Preparations
+```{r setup, echo=FALSE, include=FALSE, message=FALSE}
+# set this option in the first code chunk in the document
+#knitr::opts_chunk$set(echo = params$printcode, warnings = params$printwarnings, messages = params$printmsg)  # knit with params gives error
+knitr::opts_chunk$set(echo = FALSE, warnings = FALSE, messages = FALSE)
+```
+
+```{r libraries, message=FALSE}
+library(tidyverse)
+library(stringr)
+library(forcats)
+
+```
+
+```{r define constants, message=FALSE}
+questInputPath <- file.path(getwd(), "Data", "questionnaires_qualitative.xlsx")
+
+```
+
+```{r read data, message=FALSE}
+QQ <- readxl::read_xlsx(questInputPath)
+```
+
+## Results
+Questionnaires were completed by **43 participants**.
+
+The questionnaire intro reads: "We are interested in your subjective, personal experiences and feelings about what you experienced in the virtual reality. You can try to close your eyes and recall what it was like. When describing your experiences write anything that comes to your mind, you may use metaphores, vague formulations etc. It is not important whether it makes clear sense, we are interested in everything!:-)"
+
+### Experiences regarding causing tone by active button pressing or by (passive) vibration of controller
+There were several questions:
+
+* First, open-ended one: "How did you feel about the tone, when it was caused (I.) by your button press compared to when (II.) it sounded automatically after the vibration? Try to describe it in as much details as possible. Write anything that comes to your mind."
+* Second, with more explict questions: "Now try to think whether you had some of these feeling or some other: For example, did you like the tone more after I. or II.? Did you feel that the tone is more under your control or that you are more responsible for it after I. or II.? Did it seem to you e.g. that there was someone else (human or AI) who caused the tones after II.?"
+* Third, again asking explicitly: "Did you prefer situations with the button (I.) or vibrations (II.)? Why? Try to describe it at least a bit."
+
+#### In an open-ended question, do people describe what it was like in terms of task (difficulty, accuracy..) or phenomenal experiences (pleasant, smooth..)?
+
+Coding distinguishes two degrees: Clear and Semi, although it not always easy to code. Examples (some of which were coded in more categories):
+
+* Task - clear: "It was easier for me to determine time interval after vibration"
+* Task - Semi: "... I was more focused to what I had to listen for ... I was better able to replay the rhythm ..."
+* Phenomenal - clear: "The tone was stressful ... it was more pleasant when I could cause it myself.", ".. tone after vibration sounded softer than after button press."
+* Phenomenal - Semi: ".. I always had the feeling that I hear the tone sooner [after button press compared to vibration]"
+
+```{r Task vs phenomenal, message=FALSE}
+#table(QQ$PVO_Task_descr)
+#table(QQ$PVO_Phenom_descr)
+qqpvDescr <- QQ %>% select(Subject, PVO_Task_descr, PVO_Phenom_descr) %>% 
+  gather(key="DescriptionType", value="DescriptionValue", PVO_Task_descr, PVO_Phenom_descr) %>%
+  mutate(DescriptionType = recode(DescriptionType, `PVO_Task_descr` = "Task", `PVO_Phenom_descr` = "Phenomenal")) %>%
+  mutate(DescriptionValue = recode(DescriptionValue, `1.0` = "Clear", `0.5` = "Semi")) %>%
+  filter(complete.cases(.)) #%>%
+  #unite(col="Description", DescriptionType, DescriptionValue, sep = "-")
+
+#qqpvDescr %>% ggplot(., aes(x=Description, fill=Description)) + geom_bar()
+qqpvDescr %>% ggplot(., aes(x=DescriptionType, fill=fct_rev(DescriptionValue))) + geom_bar(position="stack") + scale_fill_discrete(name="Description degree")
+```
+
+Even when emphasizing the phenomenal aspect in the questions, people still more often provided descriptions focusing on what was their task, how easy it was to estimate the intervals. I saw this a lot in questionnaires after a previous experiment where I pressed other people's hands and they often focused on the task. (My hypothesis is that people either do not experience much (if any) phenomenal experience of agency per se or it is not something they pay attention to, consider important. Descriptions in terms of control may be post-hoc reflections, beliefs, rather than experiences occuring during the actions.)
+
+Only some people mentioned phenomenal aspects relating to agency, to having control over outcomes (but not to feeling free, causally efficacious etc): 
+
+* "When I chose when the tone would sound, I felt I had the _situation better under control_, it was more pleasant, such a situation was more under control, more fluent, I could take a rest from the counting for a moment, get ready for when it is again needed to think about the number of milliseconds."
+* ".. I felt better when I _controlled_ the beep myself."
+* "I had the tone after button press more _under control_ and knew when it would come ..."
+* "In the press-beep mode I had a feeling I had it more _under control_ ..."
+* ".. when the tone sounded _without my contribution_ after vibration, it was more pleasant."
+* "With I. [button press] one _has control_ over when he presses the button and focuses more-is prepared."
+
+#### In an open-ended question, do people spontaneously express preference for Press or Vibration trials?
+This preference can be related to both task (what was easier..) and phenomenal aspects (what was more pleasant..) and is a bit more clear to code
+```{r Prefer Press or Vibr, message=FALSE}
+#table(QQ$PVO_Press_better)
+#table(QQ$PVO_Vibration_better)
+qqpvPref <- QQ %>% select(Subject, PVO_Press_better, PVO_Vibration_better) %>% 
+  gather(key="PreferenceType", value="PreferenceValue", PVO_Press_better, PVO_Vibration_better) %>%
+  mutate(PreferenceType = recode(PreferenceType, `PVO_Press_better` = "Press", `PVO_Vibration_better` = "Vibration")) %>%
+  mutate(PreferenceValue = recode(PreferenceValue, `1.0` = "Clear", `0.5` = "Semi")) %>%
+  filter(complete.cases(.)) #%>%
+  #unite(col="Description", DescriptionType, DescriptionValue, sep = "-")
+
+#qqpvp %>% ggplot(., aes(x=Description, fill=Description)) + geom_bar()
+qqpvPref %>% ggplot(., aes(x=PreferenceType, fill=fct_rev(PreferenceValue))) + geom_bar(position="stack") + scale_fill_discrete(name="Preference degree")
+```
+
+It is not completely informative, because it lacks information in what way they prefered which, but what I find interesting are the individual difference - some people reported "definitely vibration", some "definitely press", some participants (only a few) are counted in both categories.
+
+#### Combining open question with direct question about preference of Press vs. Vibration related to Task or Phenomenal aspect:
+
+```{r Prefer Press or Vibration from Task or Phenom perspective}
+#table(QQ$PVO_Task_pref)
+qqpvPrefAspect <- QQ %>% select(Subject, PVO_Task_pref, PVO_Phenom_pref) %>% 
+  gather(key="PreferenceType", value="PreferenceValue", PVO_Task_pref, PVO_Phenom_pref) %>%
+  mutate(PreferenceType = recode(PreferenceType, `PVO_Task_pref` = "Task", `PVO_Phenom_pref` = "Phenomenal")) %>%
+  filter(complete.cases(.)) 
+
+qqpvPrefAspect %>% ggplot(., aes(x=PreferenceType, fill=PreferenceValue)) + geom_bar(position=position_dodge(preserve = "single"))
+```
+
+Most people preferred button pressing with respect to something that could be described as phenomenal aspect, usually described in terms of pleasantness or control. Related to the task aspects (difficulty of time estimation), there was interesting heterogeneity among participants, but more seemed to prefer vibration trials a bit more often, perhaps because they could use just one modality of hearing for the estimation and could replay the auditory interval in their mind and also because the three vibrations set some "pace", measure of time.
+
+#### Additional aspects of Press vs Vibration from the question asking explicitly about these aspects
+
+**Did they _like the tone itself_ more or differently after Press or after Vibration?**
+```{r Liked tone}
+as.data.frame(table(LikeToneAfter=QQ$PVE_Liked_tone))
+```
+Again interesting heterogeneity.
+
+**Did they _feel in control_ more or differently after Press or after Vibration?**
+```{r Felt in control}
+as.data.frame(table(FeelInControlAfter=QQ$PVE_In_control))
+```
+When asked explicitly, Press is a clear winner, but still mentioned only by 11 out of 43 participants.
+
+**Did they _feel responsible for tone_ more or differently after Press or after Vibration?**
+```{r Felt responsible}
+as.data.frame(table(ResponsibleAfter=QQ$PVE_Responsible_for_tone))
+```
+Very few people caught on this question.
+
+**Did they feel _involvement of other agent/AI_?**
+```{r Other agent}
+as.data.frame(table(OtherAgent=QQ$PVE_Other_agent))
+```
+When answered, most people did not feel the passively caused tones after vibration were produced by other agent or AI. Interesting is one participant who reported not connecting active button presses with own identity, sounds a bit schizoid.
+
+**Some other comments regarding difference between Press and Vibration**
+```{r Other notes Press vs Vibration}
+cat(filter(QQ, !is.na(PVE_Notes))$PVE_Notes, sep="\n")
+```
+
+

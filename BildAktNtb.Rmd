@@ -2,6 +2,10 @@
 title: "BildAktVR data analysis 1"
 author: "Ondrej Havlicek"
 output:
+  html_document:
+    df_print: paged
+    theme: flatly
+    toc: yes
   html_notebook:
     code_folding: hide
     df_print: paged
@@ -11,7 +15,10 @@ output:
 [ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 11/2017
 
 ## Preparations
-### Load packages
+```{r echo=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
+```
+
 ```{r Libraries, message=FALSE, warning=FALSE}
 library(tidyverse)  #all basic functions
 library(forcats) #working with factors
@@ -20,7 +27,6 @@ library(lmerTest) #mixed effects models pvalues
 library(sjPlot) #liner models tables
 ```
 
-### Defititions
 ```{r Definitions}
 datapath <- file.path(getwd(), "Data", "Main")
 datafilepattern <- "BildAkt.*\\.csv"
@@ -29,8 +35,9 @@ datafilepattern <- "BildAkt.*\\.csv"
 #old_theme <- theme_set(theme_grey())
 ```
 
-### Read data and convert column types
+
 ```{r Read_data, message=FALSE, warning=FALSE}
+# Read data and convert column types
 datafiles <- list.files(datapath, datafilepattern, full.names = T)
 
 rawdata <- do.call(rbind, lapply(datafiles, read_delim, delim=";")) # read all files and combine them into one tibble
@@ -42,8 +49,8 @@ rawdata <- rawdata %>% mutate(firstSceneType = parse_factor(firstSceneType, c("3
                    eventType = parse_factor(eventType, c("Action", "Control")))
 ```
 
-### Prepare subset of data for analysis, create new columns
 ```{r Subset}
+# Prepare subset of data for analysis, create new columns
 data <- rawdata %>% filter(isPracticeBlock == FALSE) %>% 
   select(Subject = subject,
          Session = session,
@@ -71,11 +78,12 @@ data <- rawdata %>% filter(isPracticeBlock == FALSE) %>%
     IntervalLogRT = log(IntervalRT)
     ) 
 
-data #preview
+#data #preview
 ```
 
 ## Exploratory analysis
 ### Explore a bit scenes distribution and randomization
+
 ```{r Scene_interval_randomization}
 #with(subset(rawdata, isPracticeBlock==F), table(sceneId, blockNo, subject)) #is each scene used only once within a block? seems so..
 #with(subset(rawdata, isPracticeBlock==F), table(sceneId, interval, subject)) #is interval assigned to scenes randomly? usually just two different intervals per scene..
@@ -87,11 +95,14 @@ data %>% ggplot(., aes(x=Objects, y=Interval)) + geom_bin2d() + scale_y_continuo
 #with(data, table(Objects, Interval)) #seems random, although far from uniformly random
 #with(data, cor.test(Objects, Interval)) #tiny negative correlation
 ```
+
 Number of objects inside a scene is not orthogonal to time interval: some combinations appear often, some less often. We will have to revise the VR code.
 
 
 ### Objects error exploration
+
 Distributions of object estimation errors (error = estimated - actual) for each participant:
+
 ```{r Objects_dists}
 data %>% ggplot(., aes(x=ObjectsError, linetype=SceneType, color=EventType)) +  
   facet_wrap(~Subject) + geom_freqpoly(bins=5) #geom_density(alpha=0.3)
@@ -128,15 +139,18 @@ There is also a difference in correlation between actual and estimated number of
 
 
 ### Objects mixed-effects model
+
 ObjectsError ~ Objects + SceneType*EventType + (1+Objects + SceneType + EventType|Subject)
+
 ```{r Objects_mixed-effects_model, message=FALSE, warning=FALSE}
 objectsLmer <- as.data.frame(data) %>% lmer(ObjectsError ~ Objects + SceneType * EventType + (1+Objects + SceneType + EventType|Subject), .)
 #random interaction fails to converge
 #summary(objectsLmer)
 
-sjt.lmer(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
+tab_model(objectsLmer, file="objectsLmer.html")# We have to save the table in html format.
 htmltools::includeHTML("objectsLmer.html") #And include it later, not needed for html_document type, only for notebook
 ```
+
 The error in object count is not (sig.) influenced by number of objects in the scene, but is influenced by the scene type (2D = more underestimation of the count)
 
 ### Intervals error exploration
@@ -150,7 +164,7 @@ Interval estimation errors (Estimated - Actual) are pretty much normally distrib
 
 ```{r Intervals_accuracy}
 intErrors <- data %>% group_by(Subject, SceneType, EventType) %>% 
-  summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean = mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError), IntervalErrorCor = cor(Interval,IntervalResp)) 
+  summarize(NTrials = n(), IntervalErrorMean = mean(IntervalError), IntervalErrorMedian = median(IntervalError), IntervalErrorAbsMean =   mean(abs(IntervalError)), IntervalErrorSD = sd(IntervalError), IntervalErrorCor = cor(Interval,IntervalResp)) 
 
 # Accuracy
 intErrors %>%  ggplot(., aes(y=IntervalErrorMean, x=SceneType)) +
@@ -178,6 +192,7 @@ Correlation between actual and estimated intervals seems to be a bit better in t
 ### Intervals models
 - Model 1: IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject)
 - Model 2: IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+SceneType + EventType|Subject)
+
 ```{r message=FALSE, warning=FALSE}
 intervalsLmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + SceneType * EventType + (1+scale(Interval) + SceneType + EventType|Subject), .)
 #summary(intervalsLmer)
@@ -185,7 +200,7 @@ intervalsLmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + 
 intervalsOELmer <- as.data.frame(data) %>% lmer(IntervalError ~ scale(Interval) + abs(ObjectsError) + SceneType * EventType + (1+scale(Interval)+SceneType + EventType|Subject), .)
 #summary(intervalsOELmer)
 
-sjt.lmer(intervalsLmer, intervalsOELmer, file="intervalsLmer.html")# We have to save the table in html format.
+tab_model(intervalsLmer, intervalsOELmer, file="intervalsLmer.html")# We have to save the table in html format.
 htmltools::includeHTML("intervalsLmer.html") #And include it later - not needed for html_document type, only for notebook
 
 ```
@@ -238,13 +253,13 @@ intRTs %>%  ggplot(., aes(y=IntervalLogRTSD, x=SceneType)) + geom_boxplot() + fa
 Not sure whether this means something, let's wait for more data..
 
 ### Interval RT mixed-effects model
-IntervalLogRT ~ Objects + Interval + SceneType * EventType + (1+SceneType + EventType|Subject)
+- IntervalLogRT ~ Objects + Interval + SceneType * EventType + (1+SceneType + EventType|Subject)
+
 ```{r IntervalRT_mixed-effects_model, message=FALSE, warning=FALSE}
 intervalRTLmer <- as.data.frame(data) %>% lmer(IntervalLogRT ~ Objects + Interval + SceneType * EventType + (1+SceneType + EventType|Subject), .)
 #summary(intervalRTLmer)
 
-sjt.lmer(intervalRTLmer, file="intervalRTLmer.html", digits.est=5, digits.ci=5)# We have to save the table in html format.
+tab_model(intervalRTLmer, file="intervalRTLmer.html", digits=5)# We have to save the table in html format.
 htmltools::includeHTML("intervalRTLmer.html") #And include it later, not needed for html_document type, only for notebook
 ```
-
 

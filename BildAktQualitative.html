@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Ondrej Havlicek" />
+
+<meta name="date" content="2018-11-16" />
+
+<title>Analyses of qualitative data from BildAkt VR experiment feedback questionnaires</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/pagedtable-1.1/css/pagedtable.css" rel="stylesheet" />
+<script src="site_libs/pagedtable-1.1/js/pagedtable.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 60px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+
+.section h2 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h3 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h4 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h5 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+.section h6 {
+  padding-top: 65px;
+  margin-top: -65px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">BildAkt analysis</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="BildAktNtb.nb.html">Analysis 1</a>
+</li>
+<li>
+  <a href="BildAkt2Ntb.nb.html">Analysis 2</a>
+</li>
+<li>
+  <a href="BildAktQualitative.nb.html">Qualitative results</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Analyses of qualitative data from BildAkt VR experiment feedback questionnaires</h1>
+<h4 class="author"><em>Ondrej Havlicek</em></h4>
+<h4 class="date"><em>2018-11-16</em></h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#preparations">Preparations</a></li>
+<li><a href="#results">Results</a><ul>
+<li><a href="#experiences-regarding-causing-tone-by-active-button-pressing-or-by-passive-vibration-of-controller">Experiences regarding causing tone by active button pressing or by (passive) vibration of controller</a><ul>
+<li><a href="#in-an-open-ended-question-do-people-describe-what-it-was-like-in-terms-of-task-difficulty-accuracy..-or-phenomenal-experiences-pleasant-smooth..">In an open-ended question, do people describe what it was like in terms of task (difficulty, accuracy..) or phenomenal experiences (pleasant, smooth..)?</a></li>
+<li><a href="#in-an-open-ended-question-do-people-spontaneously-express-preference-for-press-or-vibration-trials">In an open-ended question, do people spontaneously express preference for Press or Vibration trials?</a></li>
+<li><a href="#combining-open-question-with-direct-question-about-preference-of-press-vs.vibration-related-to-task-or-phenomenal-aspect">Combining open question with direct question about preference of Press vs. Vibration related to Task or Phenomenal aspect:</a></li>
+<li><a href="#additional-aspects-of-press-vs-vibration-from-the-question-asking-explicitly-about-these-aspects">Additional aspects of Press vs Vibration from the question asking explicitly about these aspects</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="preparations" class="section level2">
+<h2>Preparations</h2>
+</div>
+<div id="results" class="section level2">
+<h2>Results</h2>
+<p>Questionnaires were completed by <strong>43 participants</strong>.</p>
+<p>The questionnaire intro reads: “We are interested in your subjective, personal experiences and feelings about what you experienced in the virtual reality. You can try to close your eyes and recall what it was like. When describing your experiences write anything that comes to your mind, you may use metaphores, vague formulations etc. It is not important whether it makes clear sense, we are interested in everything!:-)”</p>
+<div id="experiences-regarding-causing-tone-by-active-button-pressing-or-by-passive-vibration-of-controller" class="section level3">
+<h3>Experiences regarding causing tone by active button pressing or by (passive) vibration of controller</h3>
+<p>There were several questions:</p>
+<ul>
+<li>First, open-ended one: “How did you feel about the tone, when it was caused (I.) by your button press compared to when (II.) it sounded automatically after the vibration? Try to describe it in as much details as possible. Write anything that comes to your mind.”</li>
+<li>Second, with more explict questions: “Now try to think whether you had some of these feeling or some other: For example, did you like the tone more after I. or II.? Did you feel that the tone is more under your control or that you are more responsible for it after I. or II.? Did it seem to you e.g. that there was someone else (human or AI) who caused the tones after II.?”</li>
+<li>Third, again asking explicitly: “Did you prefer situations with the button (I.) or vibrations (II.)? Why? Try to describe it at least a bit.”</li>
+</ul>
+<div id="in-an-open-ended-question-do-people-describe-what-it-was-like-in-terms-of-task-difficulty-accuracy..-or-phenomenal-experiences-pleasant-smooth.." class="section level4">
+<h4>In an open-ended question, do people describe what it was like in terms of task (difficulty, accuracy..) or phenomenal experiences (pleasant, smooth..)?</h4>
+<p>Coding distinguishes two degrees: Clear and Semi, although it not always easy to code. Examples (some of which were coded in more categories):</p>
+<ul>
+<li>Task - clear: “It was easier for me to determine time interval after vibration”</li>
+<li>Task - Semi: “… I was more focused to what I had to listen for … I was better able to replay the rhythm …”</li>
+<li>Phenomenal - clear: “The tone was stressful … it was more pleasant when I could cause it myself.”, “.. tone after vibration sounded softer than after button press.”</li>
+<li>Phenomenal - Semi: “.. I always had the feeling that I hear the tone sooner [after button press compared to vibration]”</li>
+</ul>
+<p><img src="BildAktQualitative_files/figure-html/Task%20vs%20phenomenal-1.png" width="672" /></p>
+<p>Even when emphasizing the phenomenal aspect in the questions, people still more often provided descriptions focusing on what was their task, how easy it was to estimate the intervals. I saw this a lot in questionnaires after a previous experiment where I pressed other people’s hands and they often focused on the task. (My hypothesis is that people either do not experience much (if any) phenomenal experience of agency per se or it is not something they pay attention to, consider important. Descriptions in terms of control may be post-hoc reflections, beliefs, rather than experiences occuring during the actions.)</p>
+<p>Only some people mentioned phenomenal aspects relating to agency, to having control over outcomes (but not to feeling free, causally efficacious etc):</p>
+<ul>
+<li>“When I chose when the tone would sound, I felt I had the <em>situation better under control</em>, it was more pleasant, such a situation was more under control, more fluent, I could take a rest from the counting for a moment, get ready for when it is again needed to think about the number of milliseconds.”</li>
+<li>“.. I felt better when I <em>controlled</em> the beep myself.”</li>
+<li>“I had the tone after button press more <em>under control</em> and knew when it would come …”</li>
+<li>“In the press-beep mode I had a feeling I had it more <em>under control</em> …”</li>
+<li>“.. when the tone sounded <em>without my contribution</em> after vibration, it was more pleasant.”</li>
+<li>“With I. [button press] one <em>has control</em> over when he presses the button and focuses more-is prepared.”</li>
+</ul>
+</div>
+<div id="in-an-open-ended-question-do-people-spontaneously-express-preference-for-press-or-vibration-trials" class="section level4">
+<h4>In an open-ended question, do people spontaneously express preference for Press or Vibration trials?</h4>
+<p>This preference can be related to both task (what was easier..) and phenomenal aspects (what was more pleasant..) and is a bit more clear to code <img src="BildAktQualitative_files/figure-html/Prefer%20Press%20or%20Vibr-1.png" width="672" /></p>
+<p>It is not completely informative, because it lacks information in what way they prefered which, but what I find interesting are the individual difference - some people reported “definitely vibration”, some “definitely press”, some participants (only a few) are counted in both categories.</p>
+</div>
+<div id="combining-open-question-with-direct-question-about-preference-of-press-vs.vibration-related-to-task-or-phenomenal-aspect" class="section level4">
+<h4>Combining open question with direct question about preference of Press vs. Vibration related to Task or Phenomenal aspect:</h4>
+<p><img src="BildAktQualitative_files/figure-html/Prefer%20Press%20or%20Vibration%20from%20Task%20or%20Phenom%20perspective-1.png" width="672" /></p>
+<p>Most people preferred button pressing with respect to something that could be described as phenomenal aspect, usually described in terms of pleasantness or control. Related to the task aspects (difficulty of time estimation), there was interesting heterogeneity among participants, but more seemed to prefer vibration trials a bit more often, perhaps because they could use just one modality of hearing for the estimation and could replay the auditory interval in their mind and also because the three vibrations set some “pace”, measure of time.</p>
+</div>
+<div id="additional-aspects-of-press-vs-vibration-from-the-question-asking-explicitly-about-these-aspects" class="section level4">
+<h4>Additional aspects of Press vs Vibration from the question asking explicitly about these aspects</h4>
+<strong>Did they <em>like the tone itself</em> more or differently after Press or after Vibration?</strong>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["LikeToneAfter"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Freq"],"name":[2],"type":["int"],"align":["right"]}],"data":[{"1":"No difference","2":"3"},{"1":"Press","2":"2"},{"1":"Same","2":"3"},{"1":"Vibration","2":"4"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>Again interesting heterogeneity.</p>
+<strong>Did they <em>feel in control</em> more or differently after Press or after Vibration?</strong>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["FeelInControlAfter"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Freq"],"name":[2],"type":["int"],"align":["right"]}],"data":[{"1":"Cannot control moment of press exactly","2":"1"},{"1":"Never for tone, but for situation better with vibration","2":"1"},{"1":"None","2":"1"},{"1":"Press","2":"11"},{"1":"Press, for tone","2":"1"},{"1":"Press, liked to control the speed of the experiment","2":"1"},{"1":"Rather lack of control for vibration, used Press to take breaks","2":"1"},{"1":"Vibration","2":"3"},{"1":"Vibration, 3D","2":"1"},{"1":"Vibration, because it was predictable","2":"1"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>When asked explicitly, Press is a clear winner, but still mentioned only by 11 out of 43 participants.</p>
+<strong>Did they <em>feel responsible for tone</em> more or differently after Press or after Vibration?</strong>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["ResponsibleAfter"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Freq"],"name":[2],"type":["int"],"align":["right"]}],"data":[{"1":"Never for tone, for situation more for pressing, but not very deeply","2":"1"},{"1":"No change","2":"1"},{"1":"None","2":"1"},{"1":"Press","2":"1"},{"1":"Vibration, for tones","2":"1"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>Very few people caught on this question.</p>
+<strong>Did they feel <em>involvement of other agent/AI</em>?</strong>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":["OtherAgent"],"name":[1],"type":["fctr"],"align":["left"]},{"label":["Freq"],"name":[2],"type":["int"],"align":["right"]}],"data":[{"1":"It was hard to connect the press with own identity, sometimes I had a feeling that the button was pressed by someone else","2":"1"},{"1":"No","2":"15"},{"1":"No, thanks to having controllers in hands","2":"1"},{"1":"Only if some AI decided number of vibrations","2":"1"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p>When answered, most people did not feel the passively caused tones after vibration were produced by other agent or AI. Interesting is one participant who reported not connecting active button presses with own identity, sounds a bit schizoid.</p>
+<p><strong>Some other comments regarding difference between Press and Vibration</strong></p>
+<pre><code>## Sometimes felt like communicating with the controller, that it responded to pressing, felt more personal.
+## Tone occuring after vibration feels stressful, but less stresfull than e.g. automatic cashiers in supermarkets that use human voice, because the tones admit their non-personal origin
+## Vibration felt more immersive in the VR environment
+## Sometimes felt tones change from trial to trial
+## More certainty after vibration
+## No difference
+## Tone after vibration did not feel as nice
+## Better focus and preparation for vibration
+## 2D more demanding
+## It is advantageous to determine when the tone occurs
+## Vibration was faster, easier to estimate time
+## Three vibrations allowed preparation and better estimation
+## Vibration was not under control but was easier
+## Did not care, because task was to focus on intervals
+## Vibration was better for focusing
+## Did not care about control or responsibility, important was easier focusing in case of button pressing
+## After vibration the tone felt more as a part of music introduced by the three noisy vibrations</code></pre>
+</div>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
