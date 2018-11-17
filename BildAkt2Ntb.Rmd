@@ -27,7 +27,7 @@ params:
   printwarnings: FALSE
   printmsg: FALSE
 ---
-[ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 06/2018
+[ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 06/2018 - 11/2018
 
 ## Preparations
 ```{r echo=FALSE}
@@ -41,6 +41,8 @@ library(lubridate)  # working with dates
 library(lme4) #mixed effects models
 library(lmerTest) #mixed effects models pvalues
 library(sjPlot) #liner models tables
+library(corrplot)
+library(PerformanceAnalytics)
 ```
 
 ```{r Definitions}
@@ -258,8 +260,8 @@ data_out <- data %>%
   filter(Exclude == FALSE & ObjectsAcc == 1) %>%
   filter(ObjectsCount > 8.5) # above mean number of objects
 
-nrow(data)
-nrow(data_out)
+#nrow(data)
+#nrow(data_out)
 ```
 
 ### Main results after excluding object counting errors and outlier RTs
@@ -733,3 +735,71 @@ plot_intErrorEventEventDiff
 There is a sig. difference between left and right panel. But it is really hard to say whether this is trivial, due to practice, it is an order effect.. Any ideas?
 
 
+
+# Metacognition
+
+Did errors people made correspond to their overall confidence ratings?
+
+```{r Questionnaire data}
+questInputPath <- file.path(getwd(), "Data", "questionnaires_qualitative.xlsx")
+QQ <- readxl::read_xlsx(questInputPath)
+
+```
+
+```{r}
+QQ$Subject <- as.character(QQ$Subject)
+data_errors <- data %>% group_by(Subject) %>% 
+  summarise(
+    int_error_mean = mean(IntervalError),
+    int_error_SD = sd(IntervalError), 
+    int_error_corr = cor(Interval, IntervalResp)
+  )
+data_errors$Subject <- as.character(data_errors$Subject)
+
+dataQQ <- QQ %>% 
+  select(Subject, Confidence = Intervals_Certainty_num) %>% 
+  left_join(data_errors, by="Subject") %>% 
+  filter(complete.cases(.)) %>%
+  select(-Subject)
+
+# cor.mtest <- function(mat, ...) {
+#     mat <- as.matrix(mat)
+#     n <- ncol(mat)
+#     p.mat<- matrix(NA, n, n)
+#     diag(p.mat) <- 0
+#     for (i in 1:(n - 1)) {
+#         for (j in (i + 1):n) {
+#             tmp <- cor.test(mat[, i], mat[, j], ...)
+#             p.mat[i, j] <- p.mat[j, i] <- tmp$p.value
+#         }
+#     }
+#   colnames(p.mat) <- rownames(p.mat) <- colnames(mat)
+#   p.mat
+# }
+# # matrix of the p-value of the correlation
+# p.mat <- cor.mtest(dataQQ)
+# r.mat <- cor(dataQQ)
+# 
+# col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+# corrplot(r.mat, method="color", col=col(200),  
+#          type="upper", order="hclust", 
+#          addCoef.col = "black", # Add coefficient of correlation
+#          tl.col="black", tl.srt=45, #Text label color and rotation
+#          # Combine with significance
+#          p.mat = p.mat, sig.level = 0.05, insig = "blank", 
+#          # hide correlation coefficient on the principal diagonal
+#          diag=FALSE 
+#          )
+
+```
+
+
+```{r}
+chart.Correlation(dataQQ, histogram=TRUE, pch=19)
+```
+
+- High confidence correlates with lower variation in interval estimation errors = with higher **precision of estimation**.
+- High confidence correlates with high correlation between actual and estimated intervals = with higher **ability to discriminate time intervals**.
+- Interestingly, correlation(Actual, Estimated) is very strongly correlated with SD(Actual-Estimated), but this may be mathematical "effect"?
+
+Therefore, people have overall some insight into their ability to discriminate short (sub-second) time intervals.

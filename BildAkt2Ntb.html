@@ -239,10 +239,11 @@ $(document).ready(function () {
 <li><a href="#effects-of-firstscenetype-starting-with-2d-or-3d-block">Effects of FirstSceneType: starting with 2D or 3D block</a></li>
 <li><a href="#effects-of-firsteventtype-starting-with-an-action-or-control-vibration-block">Effects of FirstEventType: starting with an Action or Control (Vibration) block</a></li>
 </ul></li>
+<li><a href="#metacognition">Metacognition</a></li>
 </ul>
 </div>
 
-<p><a href="mailto:ohavlicek@gmail.com">ohavlicek@gmail.com</a> 06/2018</p>
+<p><a href="mailto:ohavlicek@gmail.com">ohavlicek@gmail.com</a> 06/2018 - 11/2018</p>
 <div id="preparations" class="section level2">
 <h2>Preparations</h2>
 <div id="verify-the-subject-ids-and-numbers-of-trials-incl.practice-we-have" class="section level3">
@@ -862,8 +863,6 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 <h3>Exclude trials which had inaccurate object estimation and too fast object responses</h3>
 <pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
 <p><img src="BildAkt2Ntb_files/figure-html/Outliers%20objects%20RT-1.png" width="672" /></p>
-<pre><code>## [1] 7360</code></pre>
-<pre><code>## [1] 1774</code></pre>
 </div>
 <div id="main-results-after-excluding-object-counting-errors-and-outlier-rts" class="section level3">
 <h3>Main results after excluding object counting errors and outlier RTs</h3>
@@ -1387,7 +1386,7 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "><strong>0.001</strong></td>
 </tr>
 <tr>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">Objects</td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; ">Objects Count</td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">-0.02</td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  ">-0.03&nbsp;&ndash;&nbsp;-0.00</td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:center;  "><strong>0.017</strong></td>
@@ -1423,7 +1422,7 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">0.18</td>
 
 <tr>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">&tau;<sub>11</sub> <sub>Subject.Objects</sub></td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">&tau;<sub>11</sub> <sub>Subject.ObjectsCount</sub></td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">0.00</td>
 
 <tr>
@@ -1435,7 +1434,7 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">0.05</td>
 
 <tr>
-<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">&rho;<sub>01</sub> <sub>Subject.Objects</sub></td>
+<td style=" padding:0.2cm; text-align:left; vertical-align:top; text-align:left; padding-top:0.1cm; padding-bottom:0.1cm;">&rho;<sub>01</sub> <sub>Subject.ObjectsCount</sub></td>
 <td style=" padding:0.2cm; text-align:left; vertical-align:top; padding-top:0.1cm; padding-bottom:0.1cm; text-align:left;" colspan="3">-0.73</td>
 
 <tr>
@@ -3947,6 +3946,17 @@ Marginal R<sup>2</sup> / Conditional R<sup>2</sup>
 <p><img src="BildAkt2Ntb_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
 <p>There is a sig. difference between left and right panel. But it is really hard to say whether this is trivial, due to practice, it is an order effect.. Any ideas?</p>
 </div>
+</div>
+<div id="metacognition" class="section level1">
+<h1>Metacognition</h1>
+<p>Did errors people made correspond to their overall confidence ratings?</p>
+<p><img src="BildAkt2Ntb_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
+<ul>
+<li>High confidence correlates with lower variation in interval estimation errors = with higher <strong>precision of estimation</strong>.</li>
+<li>High confidence correlates with high correlation between actual and estimated intervals = with higher <strong>ability to discriminate time intervals</strong>.</li>
+<li>Interestingly, correlation(Actual, Estimated) is very strongly correlated with SD(Actual-Estimated), but this may be mathematical “effect”?</li>
+</ul>
+<p>Therefore, people have overall some insight into their ability to discriminate short (sub-second) time intervals.</p>
 </div>
 
 

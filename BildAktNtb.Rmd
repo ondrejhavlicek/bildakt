@@ -14,6 +14,10 @@ output:
 ---
 [ohavlicek@gmail.com](mailto:ohavlicek@gmail.com) 11/2017
 
+# Analysis 1 is re-arranged and extended in Analysis 2, please see that instead
+
+This file is here for historic comparisons only, some email correspondence refers to this analysis.
+
 ## Preparations
 ```{r echo=FALSE}
 knitr::opts_chunk$set(echo=FALSE)
